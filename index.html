@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infographic: Optimal Loss Functions for Financial Forecasting with Gemini AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- 
+        Chosen Color Palette: "Vibrant Teal and Amber" (Conceptual - Primary: Teal, Secondary: Amber, Accents: Lighter/Darker shades, Neutral: Gray)
+        HEX Codes (example conceptualization):
+        Teal Primary: #14B8A6 (Tailwind teal-500)
+        Amber Secondary: #F59E0B (Tailwind amber-500)
+        Dark Teal: #0F766E (Tailwind teal-700)
+        Light Teal: #5EEAD4 (Tailwind teal-300)
+        Dark Amber: #B45309 (Tailwind amber-700)
+        Light Amber: #FCD34D (Tailwind amber-300)
+        Background: #F3F4F6 (Tailwind gray-100)
+        Card Background: #FFFFFF (White)
+        Text Primary: #1F2937 (Tailwind gray-800)
+        Text Secondary: #4B5563 (Tailwind gray-600)
+
+        Narrative & Structure Plan:
+        (Original plan remains, with added Gemini API features for explanations and scenarios)
+
+        Visualization Choices Summary (Confirming NO SVG, NO MERMAID JS):
+        (Original choices remain)
+
+        Gemini API Integration:
+        - "Explain Simply ✨" buttons for MAE, MSE, Quantile Loss, NLL.
+        - "Suggest Scenarios ✨" button for aligning loss functions with business objectives.
+        - Modal to display Gemini API responses.
+
+        Confirmation: NEITHER Mermaid JS NOR SVG were used anywhere in this output. All charts are rendered to Canvas using Chart.js. Diagrams/layouts are HTML/CSS with Tailwind.
+    -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F3F4F6; /* Tailwind gray-100 */
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px; /* Max width for readability */
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px; /* Base height */
+            max-height: 350px; /* Max height */
+        }
+        @media (min-width: 768px) { /* md breakpoint */
+            .chart-container {
+                height: 350px;
+                max-height: 400px;
+            }
+        }
+        .section-title {
+            font-size: 1.875rem; /* text-3xl */
+            font-weight: 700; /* bold */
+            color: #0F766E; /* Dark Teal */
+            margin-bottom: 1rem; /* mb-4 */
+            text-align: center;
+        }
+        .card {
+            background-color: #FFFFFF;
+            border-radius: 0.5rem; /* rounded-lg */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-md */
+            padding: 1.5rem; /* p-6 */
+            margin-bottom: 1.5rem; /* mb-6 */
+        }
+        .accent-text {
+            color: #F59E0B; /* Amber Secondary */
+            font-weight: 600;
+        }
+        .primary-text {
+            color: #14B8A6; /* Teal Primary */
+            font-weight: 600;
+        }
+        .info-pill {
+            display: inline-block;
+            background-color: #5EEAD4; /* Light Teal */
+            color: #0F766E; /* Dark Teal */
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px; /* rounded-full */
+            font-size: 0.875rem; /* text-sm */
+            font-weight: 500;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .flow-step {
+            background-color: #FFFFFF;
+            border: 2px solid #14B8A6; /* Teal Primary */
+            border-radius: 0.5rem;
+            padding: 1rem;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            flex-grow: 1;
+        }
+        .flow-arrow {
+            font-size: 2rem;
+            color: #F59E0B; /* Amber Secondary */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 0.5rem;
+        }
+        .gemini-btn {
+            background-color: #F59E0B; /* Amber Secondary */
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem; /* rounded-md */
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: background-color 0.2s;
+            cursor: pointer;
+            border: none;
+            margin-top: 0.75rem; /* mt-3 */
+        }
+        .gemini-btn:hover {
+            background-color: #B45309; /* Dark Amber */
+        }
+        /* Modal styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 1.5rem; /* p-6 */
+            border-radius: 0.5rem; /* rounded-lg */
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal-title {
+            font-size: 1.25rem; /* text-xl */
+            font-weight: 600; /* semibold */
+            color: #0F766E; /* Dark Teal */
+            margin-bottom: 1rem;
+        }
+        .modal-body {
+            color: #4B5563; /* Tailwind gray-600 */
+            line-height: 1.6;
+            white-space: pre-wrap; /* To respect newlines from Gemini API */
+        }
+        .modal-close-btn {
+            background-color: #EF4444; /* red-500 */
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            margin-top: 1rem;
+            cursor: pointer;
+            float: right;
+        }
+        .loading-spinner {
+            border: 4px solid #f3f3f3; /* Light grey */
+            border-top: 4px solid #14B8A6; /* Teal Primary */
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <header class="bg-teal-700 text-white py-12 px-4 text-center">
+        <div class="container mx-auto max-w-4xl">
+            <h1 class="text-4xl md:text-5xl font-bold mb-4">Optimal Loss Functions for Financial Forecasting</h1>
+            <p class="text-lg md:text-xl text-teal-100">Understanding Predicted Values and Their Confidence with AI Insights ✨</p>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-4 md:p-8 max-w-5xl">
+
+        <section id="intro" class="my-12">
+            <div class="card">
+                <h2 class="section-title">The Critical Role of Loss Functions</h2>
+                <p class="text-gray-600 leading-relaxed">
+                    Accurate forecasting of financial data is paramount for informed decision-making. A fundamental aspect of training machine learning and statistical models is the selection of an appropriate <span class="accent-text">loss function</span>. This function guides the learning process by quantifying the discrepancy between the model's predictions and actual observed values. The choice of a loss function profoundly influences the model's characteristics and the nature of its predictions, dictating what the model learns to optimize. This infographic explores various loss functions, emphasizing those that enable the quantification of prediction uncertainty, crucial for risk-aware decisions in finance.
+                </p>
+            </div>
+        </section>
+
+        <section id="point-prediction" class="my-12">
+            <h2 class="section-title">Basics: Loss Functions for Point Prediction</h2>
+            <p class="text-center text-gray-600 mb-8">
+                Many financial forecasting problems can be approached as regression tasks, predicting a single numerical value. Here are common loss functions for such point estimates:
+            </p>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="card">
+                    <h3 class="text-xl font-semibold mb-2 text-teal-600">Mean Absolute Error (MAE)</h3>
+                    <p class="text-sm text-gray-500 mb-2">L1 Loss: Average absolute differences.</p>
+                    <p class="mb-1"><span class="info-pill">Pro</span> Less sensitive to outliers.</p>
+                    <p class="mb-1"><span class="info-pill">Pro</span> Simple to compute.</p>
+                    <p><span class="info-pill bg-red-100 text-red-700">Con</span> Not differentiable at zero.</p>
+                    <button class="gemini-btn" onclick="fetchGeminiExplanation('MAE', 'Mean Absolute Error (MAE)')">Explain Simply ✨</button>
+                </div>
+                <div class="card">
+                    <h3 class="text-xl font-semibold mb-2 text-teal-600">Mean Squared Error (MSE)</h3>
+                    <p class="text-sm text-gray-500 mb-2">L2 Loss: Average squared differences.</p>
+                    <p class="mb-1"><span class="info-pill">Pro</span> Smooth gradient.</p>
+                    <p class="mb-1"><span class="info-pill">Pro</span> Penalizes large errors heavily.</p>
+                    <p><span class="info-pill bg-red-100 text-red-700">Con</span> Highly sensitive to outliers.</p>
+                     <button class="gemini-btn" onclick="fetchGeminiExplanation('MSE', 'Mean Squared Error (MSE)')">Explain Simply ✨</button>
+                </div>
+                <div class="card">
+                    <h3 class="text-xl font-semibold mb-2 text-teal-600">Root Mean Squared Error (RMSE)</h3>
+                    <p class="text-sm text-gray-500 mb-2">Square root of MSE.</p>
+                    <p class="mb-1"><span class="info-pill">Pro</span> Error in original units (interpretable).</p>
+                    <p><span class="info-pill bg-red-100 text-red-700">Con</span> Inherits MSE's sensitivity to outliers.</p>
+                     <button class="gemini-btn" onclick="fetchGeminiExplanation('RMSE', 'Root Mean Squared Error (RMSE)')">Explain Simply ✨</button>
+                </div>
+                <div class="card">
+                    <h3 class="text-xl font-semibold mb-2 text-teal-600">Huber Loss</h3>
+                    <p class="text-sm text-gray-500 mb-2">Hybrid of MSE (small errors) & MAE (large errors).</p>
+                    <p class="mb-1"><span class="info-pill">Pro</span> Robust to outliers (like MAE).</p>
+                    <p class="mb-1"><span class="info-pill">Pro</span> Smooth for small errors (like MSE).</p>
+                    <p><span class="info-pill bg-red-100 text-red-700">Con</span> Requires tuning a threshold parameter.</p>
+                    <button class="gemini-btn" onclick="fetchGeminiExplanation('Huber Loss', 'Huber Loss')">Explain Simply ✨</button>
+                </div>
+                <div class="card md:col-span-2 lg:col-span-1">
+                    <h3 class="text-xl font-semibold mb-2 text-teal-600">Mean Absolute Percentage Error (MAPE)</h3>
+                    <p class="text-sm text-gray-500 mb-2">Expresses errors as percentages.</p>
+                    <p class="mb-1"><span class="info-pill">Pro</span> Scale-independent.</p>
+                    <p class="mb-1"><span class="info-pill bg-red-100 text-red-700">Con</span> Undefined if actual value is zero.</p>
+                    <p><span class="info-pill bg-red-100 text-red-700">Con</span> Biased (penalizes positive errors less).</p>
+                    <button class="gemini-btn" onclick="fetchGeminiExplanation('MAPE', 'Mean Absolute Percentage Error (MAPE)')">Explain Simply ✨</button>
+                </div>
+                 <div class="card md:col-span-2 lg:col-span-1 flex flex-col justify-center items-center">
+                    <h3 class="text-xl font-semibold mb-2 text-teal-600">Conceptual Outlier Sensitivity</h3>
+                    <div class="chart-container h-64 max-h-64">
+                        <canvas id="outlierSensitivityChart"></canvas>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2 text-center">Illustrative comparison of how different loss functions might react to outliers.</p>
+                </div>
+            </div>
+            <p class="text-gray-600 mt-6 leading-relaxed">
+                While useful, these point prediction loss functions don't inherently quantify the <span class="accent-text">uncertainty</span> surrounding the forecast, a critical aspect for financial decision-making.
+            </p>
+        </section>
+
+        <section id="probabilistic-forecasting" class="my-12">
+            <div class="card bg-teal-50 border border-teal-200">
+                <h2 class="section-title">The Need for Confidence: Probabilistic Forecasting</h2>
+                <p class="text-gray-700 leading-relaxed mb-4">
+                    A single predicted value is often insufficient. Understanding the <span class="primary-text">degree of confidence</span> is critical for risk management and strategy. This leads to <span class="accent-text">probabilistic forecasting</span>, which predicts a distribution of possible future values and their probabilities.
+                </p>
+                <p class="text-gray-700 leading-relaxed">
+                    This approach acknowledges market uncertainty, providing a more realistic view of potential scenarios and empowering proactive planning. Loss functions designed for probabilistic forecasting are key to achieving this.
+                </p>
+            </div>
+        </section>
+
+        <section id="quantile-loss" class="my-12">
+            <h2 class="section-title">Quantile Loss: Predicting Confidence Intervals</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                <div class="card">
+                    <p class="text-gray-600 leading-relaxed mb-4">
+                        <span class="primary-text">Quantile Loss</span> (or pinball loss) is used in quantile regression to estimate conditional quantiles (percentiles) of a response variable. This directly enables the construction of confidence intervals.
+                    </p>
+                    <p class="text-gray-600 leading-relaxed mb-2"><span class="font-semibold">Formula:</span></p>
+                    <div class="bg-gray-100 p-3 rounded text-sm mb-4 font-mono">
+                        ρ<sub>τ</sub>(y, ŷ) = (τ - 1) * (y - ŷ) &nbsp;&nbsp; if y &lt; ŷ <br>
+                        ρ<sub>τ</sub>(y, ŷ) = τ * (ŷ - y) &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if y ≥ ŷ
+                    </div>
+                    <p class="text-gray-600 leading-relaxed mb-4">
+                        Where <span class="accent-text">τ</span> is the desired quantile. The loss is asymmetric, penalizing under/over-prediction differently based on τ. For a 90% confidence interval, one predicts the 5th (τ=0.05) and 95th (τ=0.95) percentiles.
+                    </p>
+                     <h4 class="text-lg font-semibold mb-2 text-teal-600">Advantages:</h4>
+                    <ul class="list-disc list-inside text-gray-600 space-y-1 mb-3">
+                        <li>Handles asymmetric costs naturally.</li>
+                        <li>Directly estimates confidence intervals.</li>
+                        <li>Distribution-agnostic (no specific data distribution assumed).</li>
+                        <li>Useful for extreme value forecasting.</li>
+                    </ul>
+                    <h4 class="text-lg font-semibold mb-2 text-red-600">Considerations:</h4>
+                    <ul class="list-disc list-inside text-gray-600 space-y-1">
+                        <li>Potential for quantile crossing (e.g., 90th percentile < 50th).</li>
+                        <li>Summing quantile forecasts can be complex.</li>
+                    </ul>
+                    <button class="gemini-btn" onclick="fetchGeminiExplanation('Quantile Loss', 'Quantile Loss (Pinball Loss)')">Explain Simply ✨</button>
+                </div>
+                <div class="card">
+                    <h3 class="text-xl font-semibold mb-3 text-center text-teal-600">Illustrative Quantile Loss (Pinball Shape)</h3>
+                     <div class="chart-container">
+                        <canvas id="quantileLossChart"></canvas>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2 text-center">Shows the asymmetric penalty for τ = 0.2 (favors under-prediction) and τ = 0.8 (favors over-prediction) relative to the actual value (error = 0).</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="nll" class="my-12">
+            <h2 class="section-title">Negative Log-Likelihood (NLL): Modeling the Full Predictive Distribution</h2>
+             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                <div class="card">
+                    <p class="text-gray-600 leading-relaxed mb-4">
+                        <span class="primary-text">Negative Log-Likelihood (NLL)</span> is used when the goal is to model the entire predictive distribution. It trains a model to estimate parameters of a chosen probability distribution (e.g., Gaussian, Student's t) that best describe future values.
+                    </p>
+                    <p class="text-gray-600 leading-relaxed mb-2">Based on <span class="accent-text">Maximum Likelihood Estimation (MLE)</span>, minimizing NLL is equivalent to maximizing the likelihood of observing the data given the predicted distribution.</p>
+                    <p class="text-gray-600 leading-relaxed mb-2"><span class="font-semibold">NLL for Gaussian Distribution (example):</span></p>
+                    <div class="bg-gray-100 p-3 rounded text-sm mb-4 font-mono">
+                        NLL = 0.5 * log(2πσ<sup>2</sup>) + (y - μ)<sup>2</sup> / (2σ<sup>2</sup>)
+                    </div>
+                    <p class="text-gray-600 leading-relaxed mb-4">Where the model predicts mean (μ) and variance (σ<sup>2</sup>).</p>
+                    <h4 class="text-lg font-semibold mb-2 text-teal-600">Advantages:</h4>
+                    <ul class="list-disc list-inside text-gray-600 space-y-1 mb-3">
+                        <li>Provides a full probabilistic forecast (entire distribution).</li>
+                        <li>Allows calculation of various risk metrics (VaR, Expected Shortfall).</li>
+                        <li>Nuanced uncertainty quantification (shape, skewness, spread).</li>
+                        <li>Strong theoretical foundation (MLE).</li>
+                    </ul>
+                    <h4 class="text-lg font-semibold mb-2 text-red-600">Considerations:</h4>
+                    <ul class="list-disc list-inside text-gray-600 space-y-1">
+                        <li>Accuracy depends on correctness of assumed distribution.</li>
+                        <li>Can be sensitive to outliers if assumed distribution has thin tails.</li>
+                        <li>Potentially more complex to train.</li>
+                    </ul>
+                     <button class="gemini-btn" onclick="fetchGeminiExplanation('NLL', 'Negative Log-Likelihood (NLL)')">Explain Simply ✨</button>
+                </div>
+                <div class="card">
+                     <h3 class="text-xl font-semibold mb-3 text-center text-teal-600">Illustrative Predicted Gaussian Distribution</h3>
+                     <div class="chart-container">
+                        <canvas id="nllChart"></canvas>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2 text-center">Example of a Gaussian probability density function (PDF) that a model trained with NLL might predict.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="comparison" class="my-12">
+            <h2 class="section-title">Quantile Loss vs. NLL</h2>
+            <div class="card overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-teal-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-teal-700 uppercase tracking-wider">Feature</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-teal-700 uppercase tracking-wider">Quantile Loss</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-teal-700 uppercase tracking-wider">Negative Log-Likelihood (NLL)</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200 text-sm text-gray-700">
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap font-semibold">Focus</td>
+                            <td class="px-6 py-4">Predicts specific quantiles</td>
+                            <td class="px-6 py-4">Models the entire probability distribution</td>
+                        </tr>
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap font-semibold">Distributional Assumptions</td>
+                            <td class="px-6 py-4">Distribution-agnostic</td>
+                            <td class="px-6 py-4">Requires specifying a distribution (e.g., Gaussian)</td>
+                        </tr>
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap font-semibold">Asymmetry Handling</td>
+                            <td class="px-6 py-4">Naturally handles asymmetric costs via quantile parameter τ</td>
+                            <td class="px-6 py-4">Can handle with appropriate distribution choice or modified loss</td>
+                        </tr>
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap font-semibold">Output</td>
+                            <td class="px-6 py-4">Predicted quantiles (for confidence intervals)</td>
+                            <td class="px-6 py-4">Probability distribution (from which CIs are derived)</td>
+                        </tr>
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap font-semibold">Interpretability</td>
+                            <td class="px-6 py-4">Quantiles have direct probabilistic interpretation</td>
+                            <td class="px-6 py-4">NLL reflects overall model fit to data</td>
+                        </tr>
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap font-semibold">Typical Financial Applications</td>
+                            <td class="px-6 py-4">Value-at-Risk (VaR), scenarios with asymmetric error costs, distribution-agnostic forecasting</td>
+                            <td class="px-6 py-4">Comprehensive risk assessment, forecasting when distribution is known, evaluating probabilistic forecast quality</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+             <p class="text-gray-600 mt-6 leading-relaxed text-center">
+                The choice depends on specific goals: <span class="accent-text">Quantile Loss</span> is often preferred for direct quantile/VaR estimates or when data distribution is unknown. <span class="accent-text">NLL</span> is better for a full probabilistic view if a distribution can be reasonably assumed.
+            </p>
+        </section>
+
+        <section id="practical-considerations" class="my-12">
+            <h2 class="section-title">Practical Considerations for Selection</h2>
+            <div class="card">
+                <p class="text-gray-600 leading-relaxed mb-6">
+                    Selecting the best loss function isn't one-size-fits-all. Key factors include:
+                </p>
+                <div class="space-y-4">
+                    <div>
+                        <h4 class="text-lg font-semibold text-teal-600 mb-1">1. Outliers and Extreme Events:</h4>
+                        <p class="text-gray-600">Financial markets are prone to outliers. MSE is sensitive; MAE/Huber are more robust. For NLL, heavy-tailed distributions (e.g., Student's t) can accommodate extremes better than Gaussian. Quantile Loss can be robust unless predicting extreme tails.</p>
+                    </div>
+                    <div>
+                        <h4 class="text-lg font-semibold text-teal-600 mb-1">2. Alignment with Business Objectives & Risk Tolerance:</h4>
+                        <p class="text-gray-600">The loss function should reflect priorities. For risk management where underestimating loss is costly, Quantile Loss with a low τ (e.g., 0.01 for 1% VaR) is suitable. Trading objectives might need different balancing.</p>
+                        <button class="gemini-btn" onclick="fetchGeminiScenarios()">Suggest Scenarios ✨</button>
+                    </div>
+                    <div>
+                        <h4 class="text-lg font-semibold text-teal-600 mb-1">3. Performance Evaluation:</h4>
+                        <p class="text-gray-600">Beyond the training loss value, evaluate with metrics like MAE, MSE for point forecasts. For probabilistic forecasts, use CRPS, pinball loss (for quantiles), or log-likelihood. Backtesting strategies is also crucial.</p>
+                    </div>
+                </div>
+            </div>
+            <h3 class="text-xl font-semibold mt-10 mb-4 text-center text-teal-700">Simplified Decision Flow:</h3>
+            <div class="flex flex-col md:flex-row items-stretch justify-center space-y-4 md:space-y-0 md:space-x-4">
+                <div class="flow-step">Need point estimate only? <br/> <span class="text-sm text-gray-500">(Consider MAE, MSE, Huber)</span></div>
+                <div class="flow-arrow hidden md:flex">&#10132;</div>
+                <div class="flow-step">Need confidence/uncertainty? <br/> <span class="text-sm text-gray-500">(Probabilistic Methods)</span></div>
+                 <div class="flow-arrow hidden md:flex">&#10132;</div>
+                <div class="flow-step">Specific quantiles (e.g. VaR) or unknown distribution? <br/> <span class="text-sm text-gray-500">(Quantile Loss)</span></div>
+                 <div class="flow-arrow hidden md:flex">&#10132;</div>
+                <div class="flow-step">Full distribution needed & can assume one? <br/> <span class="text-sm text-gray-500">(NLL)</span></div>
+            </div>
+        </section>
+
+        <section id="conclusion" class="my-12">
+            <div class="card bg-teal-700 text-white">
+                <h2 class="section-title text-white">Conclusion: Choosing for Reliable Predictions</h2>
+                <p class="leading-relaxed mb-4">
+                    The choice of a loss function is pivotal for reliable financial forecasts, especially when uncertainty quantification is needed. Traditional regression losses (MAE, MSE) offer point estimates but lack confidence information.
+                </p>
+                <p class="leading-relaxed mb-4">
+                    <span class="font-semibold text-amber-300">Quantile Loss</span> and <span class="font-semibold text-amber-300">Negative Log-Likelihood</span> are superior for this, offering direct quantile predictions or full distributional modeling, respectively.
+                </p>
+                <p class="leading-relaxed">
+                    The optimal choice hinges on data characteristics, business objectives, risk tolerance, and the desired detail of uncertainty. Careful experimentation and rigorous evaluation are key to identifying the best loss function for your specific financial forecasting challenge.
+                </p>
+            </div>
+        </section>
+    </main>
+
+    <footer class="text-center py-8 bg-gray-800 text-gray-400 text-sm">
+        <p>&copy; 2024 Financial Forecasting Insights. Infographic generated based on Deep Research Report.</p>
+        <p>No SVG or Mermaid.js used. Charts by Chart.js (Canvas). AI features powered by Gemini.</p>
+    </footer>
+
+    <div id="geminiModalOverlay" class="modal-overlay">
+        <div class="modal-content">
+            <h3 id="geminiModalTitle" class="modal-title">AI Insight ✨</h3>
+            <div id="geminiModalBody" class="modal-body">
+                <div id="loadingSpinner" class="loading-spinner" style="display: none;"></div>
+                </div>
+            <button id="geminiModalCloseBtn" class="modal-close-btn">Close</button>
+        </div>
+    </div>
+
+    <script>
+        const sharedTooltipTitleCallback = function(tooltipItems) {
+            const item = tooltipItems[0];
+            let label = item.chart.data.labels[item.dataIndex];
+            if (Array.isArray(label)) {
+                return label.join(' ');
+            } else {
+                return label;
+            }
+        };
+
+        const sharedChartOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    labels: {
+                        color: '#4B5563' // Tailwind gray-600
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        title: sharedTooltipTitleCallback
+                    },
+                    backgroundColor: '#1F2937', // Tailwind gray-800
+                    titleColor: '#F3F4F6', // Tailwind gray-100
+                    bodyColor: '#D1D5DB' // Tailwind gray-300
+                }
+            },
+            scales: {
+                x: {
+                    ticks: { color: '#4B5563' }, // Tailwind gray-600
+                    grid: { color: '#E5E7EB' } // Tailwind gray-200
+                },
+                y: {
+                    ticks: { color: '#4B5563' }, // Tailwind gray-600
+                    grid: { color: '#E5E7EB' } // Tailwind gray-200
+                }
+            }
+        };
+        
+        function wrapLabel(str, maxWidth) {
+            if (str.length <= maxWidth) return str;
+            const words = str.split(' ');
+            let currentLine = '';
+            const lines = [];
+            for (const word of words) {
+                if ((currentLine + word).length > maxWidth && currentLine.length > 0) {
+                    lines.push(currentLine.trim());
+                    currentLine = '';
+                }
+                currentLine += word + ' ';
+            }
+            lines.push(currentLine.trim());
+            return lines;
+        }
+
+        // Outlier Sensitivity Chart (Conceptual)
+        const outlierCtx = document.getElementById('outlierSensitivityChart').getContext('2d');
+        if (outlierCtx) {
+            new Chart(outlierCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['MAE', 'Huber Loss', 'MSE/RMSE'],
+                    datasets: [{
+                        label: 'Conceptual Sensitivity to Outliers',
+                        data: [3, 5, 9], // Lower is less sensitive
+                        backgroundColor: ['#F59E0B', '#FCD34D', '#B45309'], // Amber shades
+                        borderColor: ['#B45309', '#F59E0B', '#78350F'],
+                        borderWidth: 1
+                    }]
+                },
+                options: { ...sharedChartOptions }
+            });
+        }
+
+
+        // Quantile Loss Chart
+        const quantileCtx = document.getElementById('quantileLossChart').getContext('2d');
+        if (quantileCtx) {
+            const errors = Array.from({length: 21}, (_, i) => (i - 10) / 10); // errors from -1 to 1
+            
+            function calculateQuantileLoss(error, tau) {
+                return error < 0 ? (tau - 1) * error : tau * error;
+            }
+
+            new Chart(quantileCtx, {
+                type: 'line',
+                data: {
+                    labels: errors.map(e => e.toFixed(1)),
+                    datasets: [
+                        {
+                            label: 'Quantile Loss (τ=0.2)',
+                            data: errors.map(e => calculateQuantileLoss(e, 0.2)),
+                            borderColor: '#14B8A6', // Teal Primary
+                            tension: 0.1,
+                            fill: false
+                        },
+                        {
+                            label: 'Quantile Loss (τ=0.5, MAE-like)',
+                            data: errors.map(e => calculateQuantileLoss(e, 0.5)),
+                            borderColor: '#F59E0B', // Amber Secondary
+                            tension: 0.1,
+                            fill: false,
+                            borderDash: [5, 5]
+                        },
+                        {
+                            label: 'Quantile Loss (τ=0.8)',
+                            data: errors.map(e => calculateQuantileLoss(e, 0.8)),
+                            borderColor: '#0F766E', // Dark Teal
+                            tension: 0.1,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    ...sharedChartOptions,
+                    scales: {
+                        x: { ...sharedChartOptions.scales.x, title: { display: true, text: 'Prediction Error (ŷ - y)', color: '#4B5563'} },
+                        y: { ...sharedChartOptions.scales.y, title: { display: true, text: 'Loss Value', color: '#4B5563'} }
+                    }
+                }
+            });
+        }
+
+
+        // NLL Chart (Gaussian PDF Example)
+        const nllCtx = document.getElementById('nllChart').getContext('2d');
+        if (nllCtx) {
+            function gaussianPDF(x, mean, stdDev) {
+                return (1 / (stdDev * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * Math.pow((x - mean) / stdDev, 2));
+            }
+            const xValues = Array.from({length: 41}, (_, i) => (i - 20) / 10); // x from -2 to 2
+            const mean = 0;
+            const stdDev = 0.5;
+
+            new Chart(nllCtx, {
+                type: 'line',
+                data: {
+                    labels: xValues.map(x => x.toFixed(1)),
+                    datasets: [{
+                        label: 'Example Predicted Gaussian PDF (μ=0, σ=0.5)',
+                        data: xValues.map(x => gaussianPDF(x, mean, stdDev)),
+                        borderColor: '#14B8A6', // Teal Primary
+                        backgroundColor: 'rgba(20, 184, 166, 0.2)', // Light Teal with transparency
+                        tension: 0.1,
+                        fill: true
+                    }]
+                },
+                 options: {
+                    ...sharedChartOptions,
+                    scales: {
+                        x: { ...sharedChartOptions.scales.x, title: { display: true, text: 'Predicted Value', color: '#4B5563'} },
+                        y: { ...sharedChartOptions.scales.y, title: { display: true, text: 'Probability Density', color: '#4B5563'} }
+                    }
+                }
+            });
+        }
+
+        // Gemini API Interaction
+        const modalOverlay = document.getElementById('geminiModalOverlay');
+        const modalTitle = document.getElementById('geminiModalTitle');
+        const modalBody = document.getElementById('geminiModalBody');
+        const modalCloseBtn = document.getElementById('geminiModalCloseBtn');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+
+        function showModal(title, content, isLoading = false) {
+            modalTitle.textContent = title;
+            if (isLoading) {
+                modalBody.innerHTML = ''; // Clear previous content
+                loadingSpinner.style.display = 'block';
+            } else {
+                loadingSpinner.style.display = 'none';
+                modalBody.textContent = content;
+            }
+            modalOverlay.classList.add('active');
+        }
+
+        function closeModal() {
+            modalOverlay.classList.remove('active');
+        }
+
+        modalOverlay.addEventListener('click', (event) => {
+            if (event.target === modalOverlay) {
+                closeModal();
+            }
+        });
+        modalCloseBtn.addEventListener('click', closeModal);
+
+        async function callGeminiAPI(prompt) {
+            showModal("AI Insight ✨", "", true); // Show loading state
+            const apiKey = ""; // API key will be injected by the environment if needed
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+            
+            let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
+            const payload = { contents: chatHistory };
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.error('Gemini API Error:', errorData);
+                    throw new Error(`API request failed with status ${response.status}: ${errorData.error?.message || 'Unknown error'}`);
+                }
+
+                const result = await response.json();
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const text = result.candidates[0].content.parts[0].text;
+                    showModal("AI Insight ✨", text);
+                } else {
+                    console.error('Unexpected API response structure:', result);
+                    throw new Error("Received an unexpected response structure from the API.");
+                }
+            } catch (error) {
+                console.error('Error calling Gemini API:', error);
+                showModal("Error", `Failed to get insights from AI: ${error.message}`);
+            }
+        }
+
+        function fetchGeminiExplanation(lossFunctionKey, lossFunctionDisplayName) {
+            const prompt = `Explain the ${lossFunctionDisplayName} loss function in simple terms, as if explaining to someone new to machine learning. Focus on its main idea, how it measures error, and one key advantage and disadvantage in the context of financial forecasting. Keep it concise (around 100-150 words).`;
+            callGeminiAPI(prompt);
+        }
+
+        function fetchGeminiScenarios() {
+            const prompt = `Provide three distinct, specific financial forecasting scenarios where the choice of loss function is critical. For each scenario, suggest an appropriate loss function (e.g., MAE, MSE, Quantile Loss, NLL) and briefly explain why it aligns with the business objective or risk tolerance in that particular financial context. For example, one scenario could be about minimizing downside risk in portfolio management, another about inventory optimization based on demand forecast, etc.`;
+            callGeminiAPI(prompt);
+        }
+        // Ensure Chart.js contexts are valid before creating charts
+        document.addEventListener('DOMContentLoaded', () => {
+            // Chart initialization is already outside this, but good practice if it were inside.
+            // Any other DOM dependent initializations can go here.
+        });
+
+    </script>
+</body>
+</html>
