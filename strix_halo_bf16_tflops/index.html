@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BF16 Matmul Benchmark Explorer</title>
+    <style>
+        :root {
+            color-scheme: dark;
+            font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background-color: #0f172a;
+            color: #e2e8f0;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            padding: 1rem 2rem;
+            border-bottom: 1px solid #1e293b;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            gap: 0.75rem 2rem;
+            justify-content: space-between;
+        }
+
+        header h1 {
+            font-size: 1.5rem;
+            margin: 0;
+        }
+
+        header p {
+            margin: 0;
+            font-size: 0.95rem;
+            color: #94a3b8;
+        }
+
+        #platform-info {
+            font-size: 0.82rem;
+            color: #cbd5f5;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem 1.5rem;
+            align-items: center;
+        }
+
+        #platform-info span {
+            white-space: nowrap;
+        }
+
+        #platform-info strong {
+            color: #38bdf8;
+            font-weight: 600;
+        }
+
+        main {
+            flex: 1;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr);
+            grid-template-rows: auto 1fr;
+        }
+
+        .controls {
+            display: flex;
+            gap: 0.75rem;
+            padding: 1rem 2rem;
+            align-items: center;
+            border-bottom: 1px solid #1e293b;
+            flex-wrap: wrap;
+        }
+
+        .controls button {
+            appearance: none;
+            border: 1px solid #334155;
+            background: #1e293b;
+            color: inherit;
+            font-size: 0.95rem;
+            padding: 0.6rem 1.25rem;
+            border-radius: 999px;
+            cursor: pointer;
+            transition: border-color 0.2s ease, background 0.2s ease;
+        }
+
+        .controls button.active {
+            background: #38bdf8;
+            color: #0f172a;
+            border-color: #38bdf8;
+        }
+
+        #selected-info {
+            position: absolute;
+            bottom: 1rem;
+            left: 1rem;
+            background: rgba(15, 23, 42, 0.88);
+            border: 1px solid #1e293b;
+            border-radius: 0.75rem;
+            padding: 0.9rem 1.1rem;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            max-width: 360px;
+            color: #cbd5f5;
+            box-shadow: 0 18px 38px rgba(8, 16, 33, 0.45);
+        }
+
+        #selected-info strong {
+            color: #7dd3fc;
+            font-weight: 600;
+        }
+
+        #selected-info .active-metric {
+            color: #facc15;
+        }
+
+        .controls button:focus-visible {
+            outline: 2px solid #38bdf8;
+            outline-offset: 2px;
+        }
+
+        #scene-container {
+            position: relative;
+            min-height: 0;
+            height: calc(100vh - 170px);
+            background: radial-gradient(circle at top, rgba(56, 189, 248, 0.2), transparent 55%), #0f172a;
+        }
+
+        #loading,
+        #error {
+            position: absolute;
+            inset: 50% auto auto 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(15, 23, 42, 0.85);
+            padding: 1rem 1.5rem;
+            border-radius: 0.75rem;
+            border: 1px solid #475569;
+            font-size: 0.95rem;
+            letter-spacing: 0.03em;
+        }
+
+        #status-panel {
+            margin-left: auto;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem 0.9rem;
+            font-size: 0.85rem;
+            color: #cbd5f5;
+            align-items: center;
+        }
+
+        #status-panel .value {
+            color: #facc15;
+            font-weight: 600;
+        }
+
+        #status-panel .separator {
+            color: #475569;
+        }
+
+        #legend {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid #1e293b;
+            border-radius: 0.75rem;
+            padding: 0.75rem 1rem;
+            font-size: 0.85rem;
+        }
+
+        #legend-bar {
+            width: 180px;
+            height: 12px;
+            margin: 0.5rem 0 0.25rem;
+            background: linear-gradient(90deg, #22d3ee 0%, #38bdf8 35%, #f97316 70%, #facc15 100%);
+            border-radius: 999px;
+        }
+
+        #axis-labels {
+            position: absolute;
+            bottom: 1rem;
+            right: 1rem;
+            display: grid;
+            gap: 0.35rem;
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid #1e293b;
+            border-radius: 0.75rem;
+            padding: 0.75rem 1rem;
+            font-size: 0.85rem;
+        }
+
+        #axis-labels span::before {
+            content: "";
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+            margin-right: 0.5rem;
+        }
+
+        #axis-labels span[data-axis="x"]::before {
+            background: #fb7185;
+        }
+
+        #axis-labels span[data-axis="y"]::before {
+            background: #34d399;
+        }
+
+        #axis-labels span[data-axis="z"]::before {
+            background: #38bdf8;
+        }
+
+        @media (max-width: 768px) {
+            header,
+            .controls {
+                padding: 1rem;
+            }
+
+            #scene-container {
+                height: calc(100vh - 240px);
+            }
+
+            #legend,
+            #selected-info,
+            #axis-labels {
+                position: static;
+                margin: 0.75rem 1rem;
+            }
+
+            #status-panel {
+                margin-left: 0;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div>
+            <h1>BF16 Matmul Throughput Explorer</h1>
+            <p>Interactive view of BF16 TFLOPs for matrix multiply shapes (m × k · k × n)</p>
+            <div id="platform-info" aria-label="Platform configuration">
+                <span><strong>Kernel</strong> 6.17.3-3-cachyos-deckify</span>
+                <span><strong>torch</strong> 2.10.0a0+rocm7.10.0a20251011</span>
+                <span><strong>hip</strong> 7.1.25406-c11ca311d7</span>
+                <span><strong>Device</strong> AMD Radeon Graphics (gfx1151 · 62.2&nbsp;GB · 20 CUs)</span>
+            </div>
+        </div>
+    </header>
+    <main>
+        <div class="controls" role="group" aria-label="Metric selector">
+            <button type="button" data-metric="mean" class="active">Mean</button>
+            <button type="button" data-metric="median">Median</button>
+            <button type="button" data-metric="max">Max</button>
+            <div id="status-panel" hidden>
+                Viewing <span class="value" id="metric-name">mean</span> TFLOPs
+                <span class="separator">•</span>
+                Range: <span class="value" id="metric-range">0 – 0 TFLOPs</span>
+                <span class="separator">•</span>
+                Points plotted: <span class="value" id="point-count">0</span>
+            </div>
+        </div>
+        <div id="scene-container" aria-live="polite">
+            <div id="loading">Loading benchmark data…</div>
+            <div id="legend" hidden>
+                TFLOPs scale
+                <div id="legend-bar"></div>
+                <div><span id="legend-min">0</span> → <span id="legend-max">0</span> TFLOPs</div>
+            </div>
+            <div id="axis-labels" hidden>
+                <span data-axis="x">m dimension</span>
+                <span data-axis="y">n dimension</span>
+                <span data-axis="z">k dimension</span>
+            </div>
+            <div id="selected-info" role="status" aria-live="polite">Click a data point to inspect its TFLOPs.</div>
+        </div>
+    </main>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        const jsonUrl = 'data/2025-10-19-17:31:23.json';
+        const metricButtons = Array.from(document.querySelectorAll('.controls button'));
+        const loadingEl = document.getElementById('loading');
+        const statusPanel = document.getElementById('status-panel');
+        const metricNameEl = document.getElementById('metric-name');
+        const metricRangeEl = document.getElementById('metric-range');
+        const pointCountEl = document.getElementById('point-count');
+        const legendEl = document.getElementById('legend');
+        const legendMinEl = document.getElementById('legend-min');
+        const legendMaxEl = document.getElementById('legend-max');
+        const legendBarEl = document.getElementById('legend-bar');
+        const axisLabelsEl = document.getElementById('axis-labels');
+        const container = document.getElementById('scene-container');
+        const metrics = ['mean', 'median', 'max'];
+        const selectedInfoEl = document.getElementById('selected-info');
+        const AXIS_COLORS = {
+            m: '#fb7185',
+            n: '#34d399',
+            k: '#38bdf8'
+        };
+        const SCALE_SIZE = 30;
+        const axisValueSets = {
+            m: new Set(),
+            n: new Set(),
+            k: new Set()
+        };
+        const axisTickGroups = {
+            m: null,
+            n: null,
+            k: null
+        };
+
+        let dataset = [];
+        let currentMetric = 'mean';
+
+        let renderer;
+        let scene;
+        let camera;
+        let controls;
+        let points;
+        let geometry;
+        let selectedIndex = null;
+        let pointerDownEvent = null;
+        let axisLabelSprites = [];
+
+        const pointer = new THREE.Vector2();
+        const raycaster = new THREE.Raycaster();
+        raycaster.params.Points.threshold = 1.5;
+
+        const extent = {
+            m: { min: Number.POSITIVE_INFINITY, max: Number.NEGATIVE_INFINITY },
+            n: { min: Number.POSITIVE_INFINITY, max: Number.NEGATIVE_INFINITY },
+            k: { min: Number.POSITIVE_INFINITY, max: Number.NEGATIVE_INFINITY }
+        };
+
+        const color = new THREE.Color();
+
+        selectedInfoEl.textContent = 'Click a data point to inspect its TFLOPs.';
+
+        fetch(jsonUrl)
+            .then((response) => {
+                if (!response.ok) {
+                    throw new Error(`Failed to load data (${response.status})`);
+                }
+                return response.json();
+            })
+            .then((data) => {
+                dataset = data;
+                calculateExtents();
+                pointCountEl.textContent = dataset.length.toLocaleString();
+                initThree();
+                initPoints();
+                initUI();
+                updateMetric(currentMetric);
+                loadingEl.remove();
+                statusPanel.hidden = false;
+                legendEl.hidden = false;
+                axisLabelsEl.hidden = false;
+            })
+            .catch((error) => {
+                loadingEl.id = 'error';
+                loadingEl.textContent = `Unable to display results: ${error.message}`;
+            });
+
+        function calculateExtents() {
+            extent.m.min = Number.POSITIVE_INFINITY;
+            extent.m.max = Number.NEGATIVE_INFINITY;
+            extent.n.min = Number.POSITIVE_INFINITY;
+            extent.n.max = Number.NEGATIVE_INFINITY;
+            extent.k.min = Number.POSITIVE_INFINITY;
+            extent.k.max = Number.NEGATIVE_INFINITY;
+            axisValueSets.m.clear();
+            axisValueSets.n.clear();
+            axisValueSets.k.clear();
+            for (const entry of dataset) {
+                extent.m.min = Math.min(extent.m.min, entry.m);
+                extent.m.max = Math.max(extent.m.max, entry.m);
+                extent.n.min = Math.min(extent.n.min, entry.n);
+                extent.n.max = Math.max(extent.n.max, entry.n);
+                extent.k.min = Math.min(extent.k.min, entry.k);
+                extent.k.max = Math.max(extent.k.max, entry.k);
+                axisValueSets.m.add(entry.m);
+                axisValueSets.n.add(entry.n);
+                axisValueSets.k.add(entry.k);
+            }
+        }
+
+        function initThree() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color('#0b1220');
+
+            const { clientWidth, clientHeight } = container;
+
+            camera = new THREE.PerspectiveCamera(45, clientWidth / clientHeight, 0.1, 500);
+            camera.position.set(36, 24, 36);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(clientWidth, clientHeight);
+            container.appendChild(renderer.domElement);
+
+            const ambient = new THREE.AmbientLight('#ffffff', 0.6);
+            scene.add(ambient);
+
+            const directional = new THREE.DirectionalLight('#ffffff', 0.8);
+            directional.position.set(20, 30, 20);
+            scene.add(directional);
+
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.08;
+            controls.autoRotate = false;
+            controls.minDistance = 10;
+            controls.maxDistance = 120;
+
+            addAxes();
+            addGrid();
+            addAxisTextLabels();
+            addAxisTicks();
+            renderer.domElement.addEventListener('pointerdown', onCanvasPointerDown);
+            renderer.domElement.addEventListener('pointerup', onCanvasPointerUp);
+            renderer.domElement.addEventListener('pointerleave', () => {
+                pointerDownEvent = null;
+            });
+            renderer.domElement.addEventListener('pointercancel', () => {
+                pointerDownEvent = null;
+            });
+
+            window.addEventListener('resize', onWindowResize);
+            animate();
+        }
+
+        function initPoints() {
+            const pointCount = dataset.length;
+            const positions = new Float32Array(pointCount * 3);
+            const colors = new Float32Array(pointCount * 3);
+            dataset.forEach((entry, index) => {
+                const i3 = index * 3;
+                positions[i3] = normalize(entry.m, extent.m) * SCALE_SIZE;
+                positions[i3 + 1] = normalize(entry.n, extent.n) * SCALE_SIZE;
+                positions[i3 + 2] = normalize(entry.k, extent.k) * SCALE_SIZE;
+                colors[i3] = 0.1;
+                colors[i3 + 1] = 0.4;
+                colors[i3 + 2] = 0.9;
+            });
+
+            geometry = new THREE.BufferGeometry();
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            const material = new THREE.PointsMaterial({
+                size: 0.5,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.9,
+                sizeAttenuation: true
+            });
+
+            points = new THREE.Points(geometry, material);
+            scene.add(points);
+        }
+
+        function initUI() {
+            for (const button of metricButtons) {
+                button.addEventListener('click', () => {
+                    const metric = button.dataset.metric;
+                    if (metric && metric !== currentMetric) {
+                        updateMetric(metric);
+                    }
+                });
+            }
+        }
+
+        function updateMetric(metric) {
+            currentMetric = metric;
+            metricButtons.forEach((button) => {
+                button.classList.toggle('active', button.dataset.metric === metric);
+            });
+
+            const min = Math.min(...dataset.map((entry) => entry[metric]));
+            const max = Math.max(...dataset.map((entry) => entry[metric]));
+            const colors = geometry.getAttribute('color');
+
+            dataset.forEach((entry, index) => {
+                const value = entry[metric];
+                const normalized = min === max ? 0.5 : (value - min) / (max - min);
+                colorForNormalized(normalized, color);
+                const i3 = index * 3;
+                colors.array[i3] = color.r;
+                colors.array[i3 + 1] = color.g;
+                colors.array[i3 + 2] = color.b;
+            });
+
+            colors.needsUpdate = true;
+            metricNameEl.textContent = metric;
+            metricRangeEl.textContent = `${min.toFixed(1)} – ${max.toFixed(1)} TFLOPs`;
+            legendMinEl.textContent = min.toFixed(1);
+            legendMaxEl.textContent = max.toFixed(1);
+            updateLegendGradient();
+            if (selectedIndex !== null) {
+                updateSelectedInfo(dataset[selectedIndex]);
+            }
+        }
+
+        function addAxes() {
+            const axesHelper = new THREE.AxesHelper(18);
+            scene.add(axesHelper);
+        }
+
+        function addGrid() {
+            const grid = new THREE.GridHelper(36, 12, '#1f2937', '#111827');
+            grid.rotation.x = Math.PI / 2;
+            grid.material.opacity = 0.35;
+            grid.material.transparent = true;
+            scene.add(grid);
+        }
+
+        function addAxisTextLabels() {
+            axisLabelSprites.forEach(disposeSprite);
+            axisLabelSprites = [
+                createTextSprite('m', AXIS_COLORS.m, { fontSize: 110, fontWeight: '400', strokeWidth: 10, scale: 2.8 }),
+                createTextSprite('n', AXIS_COLORS.n, { fontSize: 110, fontWeight: '400', strokeWidth: 10, scale: 2.8 }),
+                createTextSprite('k', AXIS_COLORS.k, { fontSize: 110, fontWeight: '400', strokeWidth: 10, scale: 2.8 })
+            ];
+
+            const offset = SCALE_SIZE / 2 + 2.5;
+            axisLabelSprites[0].position.set(offset, -2, 0);
+            axisLabelSprites[1].position.set(-2.5, offset, 0);
+            axisLabelSprites[2].position.set(0, -2, offset);
+
+            axisLabelSprites.forEach((sprite) => {
+                sprite.renderOrder = 2;
+                scene.add(sprite);
+            });
+        }
+
+        function addAxisTicks() {
+            ['m', 'n', 'k'].forEach((axis) => {
+                if (axisTickGroups[axis]) {
+                    disposeTickGroup(axisTickGroups[axis]);
+                    axisTickGroups[axis] = null;
+                }
+
+                const values = Array.from(axisValueSets[axis]).sort((a, b) => a - b);
+                if (!values.length) {
+                    return;
+                }
+
+                const ticks = filterTickValues(values);
+                const group = new THREE.Group();
+                const tickHalfLength = 1.1;
+                const labelOffset = 1.8;
+                const lineMaterial = new THREE.LineBasicMaterial({
+                    color: AXIS_COLORS[axis],
+                    transparent: true,
+                    opacity: 0.7
+                });
+
+                ticks.forEach((value) => {
+                    const position = normalize(value, extent[axis]) * SCALE_SIZE;
+                    let start;
+                    let end;
+                    let labelPosition;
+
+                    if (axis === 'm') {
+                        start = new THREE.Vector3(position, -tickHalfLength, 0);
+                        end = new THREE.Vector3(position, tickHalfLength, 0);
+                        labelPosition = new THREE.Vector3(position, tickHalfLength + labelOffset, 0);
+                    } else if (axis === 'n') {
+                        start = new THREE.Vector3(-tickHalfLength, position, 0);
+                        end = new THREE.Vector3(tickHalfLength, position, 0);
+                        labelPosition = new THREE.Vector3(-tickHalfLength - labelOffset, position, 0);
+                    } else {
+                        start = new THREE.Vector3(0, -tickHalfLength, position);
+                        end = new THREE.Vector3(0, tickHalfLength, position);
+                        labelPosition = new THREE.Vector3(0, tickHalfLength + labelOffset, position);
+                    }
+
+                    const geom = new THREE.BufferGeometry().setFromPoints([start, end]);
+                    const line = new THREE.Line(geom, lineMaterial);
+                    group.add(line);
+
+                    const sprite = createTextSprite(value.toLocaleString(), AXIS_COLORS[axis], {
+                        fontSize: 84,
+                        fontWeight: '400',
+                        strokeWidth: 8,
+                        strokeStyle: 'rgba(15, 23, 42, 0.65)',
+                        scale: 2.0
+                    });
+                    sprite.position.copy(labelPosition);
+                    sprite.renderOrder = 3;
+                    group.add(sprite);
+                });
+
+                axisTickGroups[axis] = group;
+                scene.add(group);
+            });
+        }
+
+        function colorForNormalized(normalized, targetColor = new THREE.Color()) {
+            const clamped = THREE.MathUtils.clamp(normalized, 0, 1);
+            const satBoost = Math.pow(clamped, 0.85);
+            const hue = THREE.MathUtils.lerp(0.62, 0.0, clamped);
+            const saturation = THREE.MathUtils.lerp(0.82, 1.0, satBoost);
+            const lightness = THREE.MathUtils.lerp(0.68, 0.42, clamped);
+            targetColor.setHSL(hue, saturation, lightness);
+            return targetColor;
+        }
+
+        function updateLegendGradient() {
+            if (!legendBarEl) {
+                return;
+            }
+            const stops = [0, 0.25, 0.5, 0.75, 1].map((t) => {
+                const hex = colorForNormalized(t, new THREE.Color()).getHexString();
+                return `#${hex} ${Math.round(t * 100)}%`;
+            }).join(', ');
+            legendBarEl.style.background = `linear-gradient(90deg, ${stops})`;
+        }
+
+        function createTextSprite(text, color, options = {}) {
+            const {
+                fontSize = 140,
+                fontWeight = '400',
+                strokeWidth = 12,
+                strokeStyle = 'rgba(7, 14, 29, 0.9)',
+                padding = 0
+            } = options;
+            const size = 256;
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+
+            ctx.clearRect(0, 0, size, size);
+            ctx.font = `${fontWeight} ${fontSize}px "Inter", "Segoe UI", sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.lineWidth = strokeWidth;
+            ctx.strokeStyle = strokeStyle;
+            ctx.strokeText(text, size / 2, size / 2 + padding);
+            ctx.fillStyle = color;
+            ctx.fillText(text, size / 2, size / 2 + padding);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.anisotropy = 4;
+            texture.generateMipmaps = false;
+            texture.needsUpdate = true;
+
+            const material = new THREE.SpriteMaterial({
+                map: texture,
+                transparent: true,
+                depthTest: false,
+                depthWrite: false
+            });
+
+            const sprite = new THREE.Sprite(material);
+            const scale = options.scale ?? 4.5;
+            sprite.scale.set(scale, scale, 1);
+            return sprite;
+        }
+
+        function filterTickValues(values) {
+            if (values.length <= 12) {
+                return values;
+            }
+            const filtered = [];
+            const step = Math.ceil(values.length / 12);
+            for (let i = 0; i < values.length; i += step) {
+                filtered.push(values[i]);
+            }
+            const last = values[values.length - 1];
+            if (filtered[filtered.length - 1] !== last) {
+                filtered.push(last);
+            }
+            return filtered;
+        }
+
+        function disposeTickGroup(group) {
+            if (!group) {
+                return;
+            }
+            const materials = new Set();
+            group.children.forEach((child) => {
+                if (child.isLine) {
+                    child.geometry.dispose();
+                    materials.add(child.material);
+                } else if (child.isSprite) {
+                    if (child.material.map) {
+                        child.material.map.dispose();
+                    }
+                    materials.add(child.material);
+                }
+            });
+            materials.forEach((material) => {
+                if (material) {
+                    material.dispose();
+                }
+            });
+            if (group.parent) {
+                group.parent.remove(group);
+            } else {
+                scene.remove(group);
+            }
+        }
+
+        function disposeSprite(sprite) {
+            if (!sprite) {
+                return;
+            }
+            if (sprite.parent) {
+                sprite.parent.remove(sprite);
+            } else {
+                scene.remove(sprite);
+            }
+            if (sprite.material.map) {
+                sprite.material.map.dispose();
+            }
+            sprite.material.dispose();
+        }
+
+        function normalize(value, { min, max }) {
+            if (max === min) {
+                return 0;
+            }
+            return (value - min) / (max - min) - 0.5;
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            const { clientWidth, clientHeight } = container;
+            camera.aspect = clientWidth / clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(clientWidth, clientHeight);
+        }
+
+        function onCanvasPointerDown(event) {
+            pointerDownEvent = { clientX: event.clientX, clientY: event.clientY };
+        }
+
+        function onCanvasPointerUp(event) {
+            if (!pointerDownEvent) {
+                return;
+            }
+            const distX = Math.abs(event.clientX - pointerDownEvent.clientX);
+            const distY = Math.abs(event.clientY - pointerDownEvent.clientY);
+            pointerDownEvent = null;
+            if (Math.hypot(distX, distY) > 6) {
+                return;
+            }
+            const rect = renderer.domElement.getBoundingClientRect();
+            pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+            raycaster.setFromCamera(pointer, camera);
+
+            const intersections = raycaster.intersectObject(points);
+            if (intersections.length > 0) {
+                const { index } = intersections[0];
+                selectPoint(index);
+            } else {
+                clearSelection();
+            }
+        }
+
+        function selectPoint(index) {
+            selectedIndex = index;
+            updateSelectedInfo(dataset[index]);
+        }
+
+        function clearSelection() {
+            selectedIndex = null;
+            selectedInfoEl.textContent = 'Click a data point to inspect its TFLOPs.';
+        }
+
+        function updateSelectedInfo(entry) {
+            selectedInfoEl.innerHTML = `
+                Shape <strong>(${entry.m} × ${entry.k}) · (${entry.k} × ${entry.n})</strong>
+                — mean <strong class="${currentMetric === 'mean' ? 'active-metric' : ''}">${entry.mean.toFixed(2)}</strong>,
+                median <strong class="${currentMetric === 'median' ? 'active-metric' : ''}">${entry.median.toFixed(2)}</strong>,
+                max <strong class="${currentMetric === 'max' ? 'active-metric' : ''}">${entry.max.toFixed(2)}</strong> TFLOPs
+            `;
+        }
+    </script>
+</body>
+</html>
